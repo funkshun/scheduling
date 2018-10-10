@@ -4,10 +4,7 @@ import os
 from sys import stdout
 import json
 from sch_tests import *
-from dm import d_mono
-from rm import r_mono
-from edf import edf
-from nedf import nedf
+from sch_algs import *
 from visualizer import vis
 
 def main():
@@ -33,7 +30,8 @@ def main():
         verbose = 1
     else:
         verbose = 0
-    
+    tests = []
+    algs = []
     for flag in flags:
         if flag[0:2] == 't=':
             tests = flag[2:len(flag)].split(',')
@@ -42,6 +40,7 @@ def main():
         if flag[0:2] == 'a=':
             algs = flag[2:len(flag)].split(',')
     print('')
+    
     if len(tests) > 0:
         print('---TEST RESULTS---') 
     for test in tests:
