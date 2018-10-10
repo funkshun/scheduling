@@ -9,7 +9,7 @@ def addExecution(out_data, task, job, start, end):
     sample['end'] = end
     out_data['executions'].append(sample)
 
-def addToJobList(jobList, taskNum, jobNum, release, deadline, c, period):
+def addToJobList(jobList, taskNum, jobNum, release, deadline, c, period, t_deadline):
     temp = {}
     temp['taskNum'] = taskNum
     temp['jobNum'] = jobNum
@@ -17,6 +17,7 @@ def addToJobList(jobList, taskNum, jobNum, release, deadline, c, period):
     temp['deadline'] = deadline
     temp['c'] = c
     temp['period'] = period
+    temp['t_deadline'] = t_deadline
     jobList.append(temp)
     
 def findMaxDeadline(jobList):
@@ -54,7 +55,9 @@ def edf(tasks, t, out_name):
                         jobNum,
                         temp_time,
                         temp_time+task['deadline'],
-                        task['c'])
+                        task['c'],
+                        task['period'],
+                        task['deadline'])
             temp_time = temp_time + task['period']
             jobNum = jobNum + 1
 
@@ -124,7 +127,8 @@ def r_mono(tasks, t, name):
                         temp_time,
                         temp_time+task['deadline'],
                         task['c'],
-                        task['period'])
+                        task['period'],
+                        task['deadline'])
             temp_time = temp_time + task['period']
             jobNum = jobNum + 1
 
@@ -195,6 +199,7 @@ def d_mono(tasks, t, name):
                         temp_time,
                         temp_time+task['deadline'],
                         task['c'],
+                        task['period'],
                         task['deadline'])
             temp_time = temp_time + task['deadline']
             jobNum = jobNum + 1
@@ -216,9 +221,9 @@ def d_mono(tasks, t, name):
         for job in jobList:
             if (job['release'] <= time 
                     and (job['deadline'] < smallest_deadline
-                    or (job['deadline'] == smallest_deadline
+                    or (job['t_deadline'] == smallest_deadline
                     and job['taskNum'] <= earliest_taskNum))):
-                smallest_deadline = job['deadline']
+                smallest_deadline = job['t_deadline']
                 smallestJob = job
                 earliest_taskNum = job['taskNum']
                 
@@ -264,7 +269,9 @@ def nedf(tasks, t, name):
                         jobNum,
                         temp_time,
                         temp_time+task['deadline'],
-                        task['c'])
+                        task['c'],
+                        task['period'],
+                        task['deadline'])
             temp_time = temp_time + task['period']
             jobNum = jobNum + 1
 
