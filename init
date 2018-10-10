@@ -1,0 +1,189 @@
+#!/usr/bin/python3
+import sys
+import os
+from sys import stdout
+import json
+from sch_tests import *
+from dm import d_mono
+from rm import r_mono
+from edf import edf
+from nedf import nedf
+from visualizer import vis
+
+def main():
+    if len(sys.argv) == 1:
+        help_str()
+
+    in_file = sys.argv[-1]
+    flags = []
+    for i in range(1, len(sys.argv) - 1):
+        flags.append(sys.argv[i][1:len(sys.argv[i])]) 
+    
+    if 'h' in flags:
+        help_str()
+    
+    with open(sys.argv[-1]) as in_file:
+        in_data = json.load(in_file)
+    task_set = in_data['tasks']
+    max_t = in_data['max_t']
+    name = sys.argv[-1][0:sys.argv[-1].index('.')]
+
+    
+    if 'v' in flags:
+        verbose = 1
+    else:
+        verbose = 0
+    
+    for flag in flags:
+        if flag[0:2] == 't=':
+            tests = flag[2:len(flag)].split(',')
+    
+    for flag in flags:
+        if flag[0:2] == 'a=':
+            algs = flag[2:len(flag)].split(',')
+    print('')
+    if len(tests) > 0:
+        print('---TEST RESULTS---') 
+    for test in tests:
+        if test == 'tda':
+            if gen_tda(task_set, verbose):
+                print("Task Set -PASSED- General Time Demand Analysis")
+            else:
+                print("Task Set -FAILED- General Time Demand Analysis")
+        
+        elif test == 'rta':
+            if rta(task_set, verbose):
+                print("Task Set -PASSED- Response Time Analysis")
+            else:
+                print("Task Set -FAILED- Response Time Analysis")
+        
+    for test in tests:
+        if test == 'util':
+            if ('rm' in algs or 'dm' in algs) and ('edf' in algs or 'nedf' in algs): 
+                if util(task_set, verbose, False):
+                    print("Task Set -PASSED- Utilization Analysis for EDF")
+                else:
+                    print("Task Set -FAILED- Utilization Analysis for EDF")
+                if util(task_set, verbose, True):
+                    print("Task Set -PASSED- Utilization Analysis for RM/DM")
+                else:
+                    print("Task Set -FAILED- Utilization Analysis for RM/DM")
+            elif 'rm' in algs or 'dm' in algs:
+                if util(task_set, verbose, True):
+                    print("Task Set -PASSED- Utilization Analysis for RM/DM")
+                else:
+                    print("Task Set -FAILED- Utilization Analysis for RM/DM")
+            elif 'edf' in algs or 'nedf' in algs:
+                if util(task_set, verbose, False):
+                    print("Task Set -PASSED- Utilization Analysis for EDF")
+                else:
+                    print("Task Set -FAILED- Utilization Analysis for EDF")
+            else:
+                print("Utilization Test undefined without algorithm specified")
+    
+    for test in tests:
+        if test == 'den':
+            if ('rm' in algs or 'dm' in algs) and ('edf' in algs or 'nedf' in algs): 
+                if den(task_set, verbose, False):
+                    print("Task Set -PASSED- Density Analysis for EDF")
+                else:
+                    print("Task Set -FAILED- Density Analysis for EDF")
+                if den(task_set, verbose, True):
+                    print("Task Set -PASSED- Density Analysis for RM/DM")
+                else:
+                    print("Task Set -FAILED- Density Analysis for RM/DM")
+            elif 'rm' in algs or 'dm' in algs:
+                if den(task_set, verbose, True):
+                    print("Task Set -PASSED- Density Analysis for RM/DM")
+                else:
+                    print("Task Set -FAILED- Density Analysis for RM/DM")
+            elif 'edf' in algs or 'nedf' in algs:
+                if den(task_set, verbose, False):
+                    print("Task Set -PASSED- Density Analysis for EDF")
+                else:
+                    print("Task Set -FAILED- Density Analysis for EDF")
+            else:
+                print("Density Test undefined without algorithm specified")
+
+    if len(tests) > 0:
+        print('') 
+    if len(algs) > 0:
+        print("--SCHEDULING RESULTS--")
+    for alg in algs:
+        _alg(alg, task_set, max_t, name)
+
+
+
+def help_str():
+    print("Scheduling Algorithm and Schedulability Test Solver\n")
+    print("Run without argument or with the \'-h\' flag to view this help")
+    print("Usage: ./init [flags] input.json\n")
+
+    print("---------Flags---------")
+    print("-a -- specify algorithm")
+    print("-t -- specify test\n")
+
+    print("-Scheduling Algorithms-")
+    print("edf ---- preemptive EDF")
+    print("nedf --- non-preemptive EDF")
+    print("rm ----- rate monotonic")
+    print("dm ----- deadline monotonic\n")
+
+    print("----Scheduling Test----")
+    print("tda -- Time Demand")
+    print("rta -- Response Time")
+    print("util -- Utilization (Different for rm/dm)")
+    print("den -- Density (Different for rm/dm)\n")
+
+    print("----Utility Flags----")
+    print("-v -- Verbose (Prints Data to stdout)")
+    print("-h -- Open this help dialog\n")
+
+    print("Example: Rate Monotonic with Time Demand Test, Verbose")
+    print("./init -a=rm -t=tda -v test.json")
+    exit()
+
+def _alg(alg, tasks, t, name):
+    
+    if alg == 'edf':
+        edf(tasks, t, name + "_edf.json")
+        print("EDF Executions available at " + name + "_edf.json")
+        vis(name + "_edf.json")
+        os.system('ps2pdf schedule.ps ' + name + '_edf.pdf')
+        os.system('pdfcrop ' + name + '_edf.pdf ' + name + '_edf.pdf > /dev/null')
+        os.system('rm schedule.ps')
+        print("EDF Schedule available at " + name + "_edf.pdf")
+    
+    elif alg == 'nedf':
+        nedf(tasks, t, name + "_nedf.json")
+        print("Nonpreemptive EDF Executions available at " + name + "_nedf.json")
+        vis(name + "_nedf.json")
+        os.system('ps2pdf schedule.ps ' + name + '_nedf.pdf')
+        os.system('pdfcrop ' + name + '_nedf.pdf ' + name + '_nedf.pdf > /dev/null')
+        os.system('rm schedule.ps')
+        print("Nonpreemptive EDF Schedule available at " + name + "_nedf.pdf")
+
+    elif alg == 'rm':
+        r_mono(tasks, t, name + "_rm.json")
+        print("Rate Monotonic Executions available at " + name + "_rm.json")
+        vis(name + "_rm.json")
+        os.system('ps2pdf schedule.ps ' + name + '_rm.pdf')
+        os.system('pdfcrop ' + name + '_rm.pdf ' + name + '_rm.pdf > /dev/null')
+        os.system('rm schedule.ps')
+        print("Rate Monotonic Schedule available at " + name + "_rm.pdf")
+
+    elif alg == 'rdm':
+        d_mono(tasks, t, name + "_dm.json")
+        print("Deadline Monotonic Executions available at " + name + "_dm.json")
+        vis(name + "_dm.json")
+        os.system('ps2pdf schedule.ps ' + name + '_dm.pdf')
+        os.system('pdfcrop ' + name + '_dm.pdf ' + name + '_dm.pdf > /dev/null')
+        os.system('rm schedule.ps')
+        print("Deadline Monotonic Schedule available at " + name + "_dm.pdf")
+
+    
+
+
+if __name__ == '__main__':
+    main()
+
